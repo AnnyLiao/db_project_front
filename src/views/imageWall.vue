@@ -365,7 +365,7 @@ export default {
     },
     logout() {
       this.$store.commit("set", ["userId", null]);
-      this.$router.push({ path: "/login" });
+      this.$router.push({ path: "/" });
     },
     getImage() {
       getImages()
