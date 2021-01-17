@@ -89,7 +89,7 @@
         <div class="col imgInfo">
           <img :src="img_url" />
           <div class="info">
-            <span>上傳者: {{ uploader }}</span>
+            <router-link :to="`/profile/${uploader}/${uploaderId}`">上傳者: {{ uploader }}</router-link>
             <div class="icons">
               <span @click="clickLiked"
                 ><b-icon icon="hand-thumbs-up" :class="likeClass"></b-icon>
@@ -283,6 +283,7 @@ export default {
       heartIcon: "heart",
       like_count: null,
       uploader: null,
+      uploaderId: null,
       img_url: null,
       modalShow: false,
       searchText: null,
@@ -406,6 +407,7 @@ export default {
         .then((response) => {
           this.commentItems = [];
           this.rateValue = 0;
+          this.uploaderId = response.data.img.uploader.id;
           this.uploader = response.data.img.uploader.username;
           this.like_count = response.data.like_count;
           this.rating =

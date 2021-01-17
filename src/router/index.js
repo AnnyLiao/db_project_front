@@ -30,6 +30,11 @@ const routes = [
     component: profile
   },
   {
+    path: '/profile/:name/:id',
+    name: 'profileById',
+    component: profile
+  },
+  {
     path: '/imageWall',
     name: 'imageWall',
     component: imageWall
