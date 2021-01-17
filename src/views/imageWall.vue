@@ -614,7 +614,9 @@ export default {
       await addNewTags({
         tagName: this.newTag,
       })
-        .then(() => {})
+        .then(() => {
+          this.newTag = "";
+        })
         .catch((error) => {
           console.log(error);
         });
