@@ -4,6 +4,7 @@ import Home from '../views/Home.vue'
 import login from '@/views/login.vue'
 import register from '@/views/register'
 import imageWall from '@/views/imageWall.vue'
+import profile from '@/views/profile.vue'
 
 Vue.use(VueRouter)
 
@@ -22,6 +23,11 @@ const routes = [
     path: '/register',
     name: 'register',
     component: register
+  },
+  {
+    path: '/profile',
+    name: 'profile',
+    component: profile
   },
   {
     path: '/imageWall',

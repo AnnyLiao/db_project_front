@@ -36,7 +36,7 @@
               variant="secondary"
             ></b-icon>
           </template>
-          <b-dropdown-item href="#">
+          <b-dropdown-item href="/profile">
             <span>Profile</span>
           </b-dropdown-item>
           <b-dropdown-divider></b-dropdown-divider>
@@ -50,24 +50,27 @@
     </div>
     <div class="hashTag">
       <b-card>
-        <div>
-          This is some content within the default
-          <samp>&lt;b-card-body&gt;</samp> block of the
-          <samp>&lt;b-card&gt;</samp> component. Notice the padding between the
-          card's border and this gray <samp>&lt;div&gt;</samp>.
+        <div class="row">
+          <div class="col">
+            <b-button variant="link" @click="getImage"
+              >All</b-button
+            >
+          </div>
+          <div class="col" v-for="(v, i) in options" :key="i">
+            <b-button
+              variant="link"
+              @click="searchImagebyTag(v.value)"
+              >#{{ v.text }}</b-button
+            >
+          </div>
         </div>
       </b-card>
     </div>
     <h4 v-if="items.length == 0">no images</h4>
-    <vue-masonry-wall :items="items" :options="options" v-else>
+    <vue-masonry-wall :items="items" :options="ImageOptions" v-else>
       <template v-slot:default="{ item }">
         <div class="Item" @click="showImageInfo(item.id, item.image)">
           <img :src="item.image" />
-
-          <!-- <div class="Content">
-            <h5 class="text-ellipsis-1l">{{ item.title }}</h5>
-            <p class="text-ellipsis-2l">{{ item.content }}</p>
-          </div> -->
         </div>
       </template>
     </vue-masonry-wall>
@@ -82,10 +85,6 @@
       hide-header-close
       centered
     >
-      <!-- <div class="tagSelect">
-        <b-form-select v-model="saveTag" :options="tagsList"></b-form-select>
-      </div> -->
-
       <div class="row">
         <div class="col imgInfo">
           <img :src="img_url" />
@@ -115,6 +114,88 @@
             </b-list-group>
           </div>
           <div class="postComment">
+            <div>
+              <b-form-group>
+                <b-form-tags
+                  id="tags-with-dropdown"
+                  v-model="HashTag"
+                  no-outer-focus
+                  class="mb-2"
+                >
+                  <template v-slot="{ tags, disabled, addTag, removeTag }">
+                    <ul
+                      v-if="tags.length > 0"
+                      class="list-inline d-inline-block mb-2"
+                    >
+                      <li
+                        v-for="tag in tags"
+                        :key="tag"
+                        class="list-inline-item"
+                      >
+                        <b-form-tag
+                          @remove="RemoveTag({ tag, removeTag })"
+                          :title="tag"
+                          :disabled="disabled"
+                          variant="info"
+                          >{{ tag }}</b-form-tag
+                        >
+                      </li>
+                    </ul>
+
+                    <b-dropdown
+                      size="sm"
+                      variant="outline-secondary"
+                      block
+                      menu-class="w-100"
+                    >
+                      <template #button-content>
+                        <b-icon icon="tag-fill"></b-icon> Choose tags
+                      </template>
+                      <b-dropdown-form @submit.stop.prevent="() => {}">
+                        <b-form-group
+                          label="new tag"
+                          label-for="tag-search-input"
+                          label-cols-md="auto"
+                          class="mb-0"
+                          label-size="sm"
+                          :disabled="disabled"
+                        >
+                          <b-input-group>
+                            <b-form-input
+                              v-model="newTag"
+                              id="tag-search-input"
+                              type="text"
+                              size="sm"
+                              autocomplete="off"
+                            ></b-form-input>
+                            <b-input-group-append>
+                              <b-button
+                                variant="outline-secondary"
+                                size="sm"
+                                class="tagButton"
+                                @click="addNewTag"
+                                >新增</b-button
+                              >
+                            </b-input-group-append>
+                          </b-input-group>
+                        </b-form-group>
+                      </b-dropdown-form>
+                      <b-dropdown-divider></b-dropdown-divider>
+                      <b-dropdown-item-button
+                        v-for="option in availableOptions"
+                        :key="option.value"
+                        @click="onOptionClick({ option, addTag })"
+                      >
+                        {{ option.text }}
+                      </b-dropdown-item-button>
+                      <b-dropdown-text v-if="availableOptions.length === 0">
+                        There are no tags available to select
+                      </b-dropdown-text>
+                    </b-dropdown>
+                  </template>
+                </b-form-tags>
+              </b-form-group>
+            </div>
             <b-form-rating
               v-model="rateValue"
               variant="warning"
@@ -171,30 +252,26 @@ import {
   rate,
   comment,
   getTags,
+  getImageByTagId,
+  getTagByImageId,
   upload,
+  addNewTags,
+  addImageTag,
+  removeImageTag
 } from "@/apis.js";
 export default {
   name: "imageWall",
   components: { VueMasonryWall },
   data() {
     return {
+      RemoveT: null,
+      HashTag: [],
       title: null,
       category: null,
       imageFile: null,
       imageModalShow: false,
-      Options: [
-        "Apple",
-        "Orange",
-        "Banana",
-        "Lime",
-        "Peach",
-        "Chocolate",
-        "Strawberry",
-      ],
-      search: "",
-      value: [],
-      saveTag: null,
-      tagsList: [],
+      options: [],
+      newTag: "",
       is_liked: false,
       likeClass: "unlike",
       is_favorite: false,
@@ -209,7 +286,7 @@ export default {
       img_url: null,
       modalShow: false,
       searchText: null,
-      options: {
+      ImageOptions: {
         width: 300,
         padding: {
           2: 8,
@@ -219,6 +296,23 @@ export default {
       commentItems: [],
       items: [],
     };
+  },
+  computed: {
+    availableOptions() {
+      // Filter out already selected options
+      const options = this.options.filter(
+        (opt) => this.HashTag.indexOf(opt.text) === -1
+      );
+      
+      // Show all options available
+      return options;
+    },
+    getRemoveTagId() {
+      const removeTagId = this.options.filter(
+        (opt) => this.RemoveT.indexOf(opt.text) > -1
+      );
+      return removeTagId[0].value;
+    }
   },
   watch: {
     searchText(val) {
@@ -291,9 +385,9 @@ export default {
     getTag() {
       getTags()
         .then((response) => {
-          this.tagsList = [];
+          this.options = [];
           for (let i of response.data) {
-            this.tagsList.push({
+            this.options.push({
               value: i.id,
               text: i.tag,
             });
@@ -318,18 +412,23 @@ export default {
             response.data.rating != null ? response.data.rating.toFixed(1) : 0;
           this.is_favorite = response.data.is_favorite;
           this.is_liked = response.data.liked;
-          // if (response.data.is_favorite) {
-          //   this.heartIcon = "heart-fill";
-          //   this.favoriteText = "已收藏";
-          // }else{
-          //   this.heartIcon = "heart";
-          //   this.favoriteText = "收藏";
-          // }
           for (let i of response.data.comment) {
             this.commentItems.push({
               content: i.content,
               user: i.username,
             });
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+      this.HashTag = [];
+      getTagByImageId({
+        imageId: img_id,
+      })
+        .then((response) => {
+          for (let i of response.data) {
+            this.HashTag.push(i.tag);
           }
         })
         .catch((error) => {
@@ -468,11 +567,63 @@ export default {
 
       this.getImage();
     },
+    searchImagebyTag(tag_id) {
+      this.items = [];
+      getImageByTagId({
+        tagId: tag_id,
+      })
+        .then((response) => {
+          for (let i of response.data) {
+            this.items.push({
+              id: i.id,
+              image: `http://localhost:3001${i.url}`,
+            });
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    },
+    onOptionClick({ option, addTag }) {
+      addTag(option.text);
+      addImageTag({
+        imgId: this.imgId,
+        userId: this.$store.state.userId,
+        tagId: option.value,
+      })
+        .then(() => {})
+        .catch((error) => {
+          console.log(error);
+        });
+    },
+    RemoveTag({ tag, removeTag }) {
+      this.RemoveT = tag;
+      removeImageTag({
+        imgId: this.imgId,
+        userId: this.$store.state.userId,
+        tagId: this.getRemoveTagId,
+      })
+        .then(() => {
+          removeTag(tag);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    },
+    async addNewTag() {                                                                                           
+      await addNewTags({
+        tagName: this.newTag,
+      })
+        .then(() => {})
+        .catch((error) => {
+          console.log(error);
+        });
+      this.getTag();
+    },
   },
   mounted() {
     this.getImage();
     this.getTag();
-    console.log(this.$store.state.userId);
   },
 };
 </script>

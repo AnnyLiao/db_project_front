@@ -59,8 +59,31 @@
 
 }
 
+.profile {
+    .row {
+        align-items: center;
+        margin: 1em 1em;
+    }
+
+    img {
+        object-fit: cover;
+        width: 100%;
+        height: 100%;
+        line-height: 0;
+        display: block;
+    }
+
+    .Item {
+        overflow: hidden;
+        border-radius: 4px;
+        width: 100%;
+        background: #F5F5F5;
+    }
+
+}
+
 .modal-content {
-    height: 80vh;
+    // height: 80vh;
 
     .modal-body {
         .tagSelect {
@@ -105,11 +128,10 @@
                 }
             }
 
-
         }
 
         .imgComment {
-            max-height: 74vh;
+            max-height: 80vh;
 
             .comment {
                 max-height: 65%;
@@ -125,7 +147,7 @@
                 display: flex;
                 flex-direction: column;
 
-                .btn {
+                .btn:not(.tagButton) {
                     margin-top: 1em;
                 }
             }
